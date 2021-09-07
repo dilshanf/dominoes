@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>Dominos</title>
+		<meta name="description" content="Dominos Game" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="shortcut icon" type="image/png" href="/favicon.ico"/>
+		<link href="css/bootstrap.min.css" rel="stylesheet" />
+		<link href="css/main.css" rel="stylesheet" />
+		
+		<!-- STYLES -->
+		<style>
+			
+		</style>
+	</head>
+	<body>
+		
+		<div id="start-section">
+			
+			<h1 class="text-center">Welcome</h1>
+			
+			<div class="row">
+				
+				<div class="col-sm-3"></div>
+				<div class="col-sm-6 text-center">
+					<form id="start" method="post">
+						<select name="players" class="form-select form-select-lg mb-3" aria-label=".form-select-lg">
+							<option selected>Please select the number of players</option>
+							<option value="2">Two</option>
+							<option value="3">Three</option>
+							<option value="4">Four</option>
+						</select>
+						<span class="badge bg-danger" id="players-error" style="display:none;">Please select the number of players</span>
+						<button type="submit" class="btn w-100 btn-primary btn-lg">Start</button>
+						
+						<br />
+						<br />
+						<select name="dominoes" class="form-select form-select mb-3" aria-label=".form-select-lg">
+							<option value="" selected>Optional: Select number of dominoes per player</option>
+							<option value="2">Two</option>
+						</select>						
+					</form>
+				</div>
+				<div class="col-sm-3"></div>
+			</div>
+		</div>
+		
+		<div id="game-section" style="display:none;">
+			<div class="canvas">
+				<div class="player2 text-center">
+				</div>
+				<div class="player3">
+				</div>
+				<div class="player4">
+				</div>            
+				
+				<div class="board text-center">
+					
+				</div>
+				
+				<div class="">
+					<div class="player1 text-center">
+					</div>
+				</div>
+				
+				
+			</div>
+			
+		</div>
+		
+		<div class="modal" tabindex="-1" role="dialog">
+			<div class="modal-dialog" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title">Choose direction</h5>
+					</div>
+					<div class="modal-body">
+						<span class="d-inline-block">Left</span>
+						<div class="form-check form-switch d-inline-block">
+							
+							<input class="form-check-input" type="checkbox" id="direction" checked>
+							<label class="form-check-label" for="direction">Right</label>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button id="confirm" type="button" class="btn btn-primary">Confirm</button>
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<!-- SCRIPTS -->
+		
+		<script src="js/bootstrap.min.js"></script>
+		<script src="js/jquery-3.6.0.min.js"></script>
+		<script>
+			
+			$(document).ready(function() {
+				
+				var request;
+				
+				$("#start").submit(function(event){
+					event.preventDefault();
+					if (request) {
+						request.abort();
+					}
+					var $form = $(this);
+					
+					var serializedData = $form.serialize();
+					
+					request = $.ajax({
+						url: window.location.href + "/start.php",
+						type: "post",
+						data: serializedData
+					});
+					
+					request.done(function (response, textStatus, jqXHR){
+						if (response.status == 1)
+						{
+							console.log(response);
+							
+							redraw(response);
+							$(".board").append('<img class="board-piece" src="images/pieces/'+response.firstPiece+'.png" />	');
+							
+							$("#start-section").remove();
+							$("#game-section").show();
+							
+						}
+						else
+						{
+							$("#players-error").show();
+						}
+					});
+					
+					request.fail(function (jqXHR, textStatus, errorThrown){
+						console.error(
+						"Error"+ textStatus, errorThrown
+						);
+					});
+					
+				});
+				
+				function redraw(response)
+				{
+					$( ".player1, .player2, .player3, .player4, .board" ).empty();
+					
+					$('.player1, .player2, .player3, .player4').removeClass( 'currentPlayer' );
+					$('.player' + response.currentPlayer).addClass( 'currentPlayer' );
+					
+					for (let i = 0; i < response.player1.length; i++) {
+						$(".player1").append('<img class="player-piece 1" type="image" src="images/pieces/'+response.player1[i]+'.png" />	');
+					}
+					
+					for (let i = 0; i < response.player2.length; i++) {
+						$(".player2").append('<img class="player-piece 2" type="image" src="images/pieces/'+response.player2[i]+'.png" />	');
+					}
+					
+					if (response.players == 2)
+					{
+						$(".player3").remove();
+						$(".player4").remove();
+					} 
+					else
+					{
+						for (let i = 0; i < response.player3.length; i++) {
+							$(".player3").append('<img class="player-piece 3" type="image" src="images/pieces/'+response.player3[i]+'.png" />	');
+						}
+						
+						if (response.players == 4)
+						{
+							for (let i = 0; i < response.player4.length; i++) {
+								$(".player4").append('<img class="player-piece 4" type="image" src="images/pieces/'+response.player4[i]+'.png" />	');
+							}
+						}
+						else
+						{
+							$(".player4").remove();
+						}
+					}
+					
+					$(".player-piece").click(function(event) {
+						if($(this).hasClass(response.currentPlayer))
+						{
+							$(".player-piece").removeClass("selected");
+							$(this).addClass( 'selected' );
+							$('.modal').modal('show');
+						}
+					});
+				}
+				
+				$("#confirm").click(function(event) {
+					piece = $(".player-piece.selected").attr("src").split("/")[2].split('.')[0];
+					direction = $("#direction").prop("checked");
+					
+					direction ? direction = 'right' : direction = 'left';
+					
+					if (request) {
+						request.abort();
+					}
+					serializedData = [];
+					serializedData['piece'] = piece;
+					serializedData['direction'] = direction;   
+					
+					request = $.ajax({
+						url: window.location.href + "/game.php",
+						type: "post",
+						data: {direction:direction, piece:piece},
+					});
+					
+					request.done(function (response, textStatus, jqXHR){
+						
+						console.log(response);
+						
+						if (response.status == '')
+						{
+							alert('Invalid piece selected. Please choose a valid piece');
+							$('.modal').modal('hide');
+						}
+						
+						if (response.status == '1')
+						{
+							redraw(response);
+							$('.modal').modal('hide');
+							
+							for (let i = 0; i < response.board.length; i++) {
+								$(".board").append('<img class="board-piece" src="images/pieces/'+response.board[i]+'.png" />	');
+							}
+						}
+						
+						if (response.status == '2')
+						{
+							alert('Game complete');
+							$('.modal').modal('hide');
+						}
+						
+					});
+					
+					request.fail(function (jqXHR, textStatus, errorThrown){
+						console.error(
+						"Error"+ textStatus, errorThrown
+						);
+					});
+					
+				});
+			});
+		</script>
+		
+		
+	</body>
+</html>
